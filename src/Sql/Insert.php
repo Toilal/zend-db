@@ -10,12 +10,13 @@
 namespace Zend\Db\Sql;
 
 use Zend\Db\Adapter\Driver\DriverInterface;
+use Zend\Db\Adapter\Driver\Pdo\Pdo;
 use Zend\Db\Adapter\ParameterContainer;
 use Zend\Db\Adapter\Platform\PlatformInterface;
 
 class Insert extends AbstractPreparableSql
 {
-    /**#@+
+    /**
      * Constants
      *
      * @const
@@ -180,14 +181,18 @@ class Insert extends AbstractPreparableSql
 
         $columns = [];
         $values  = [];
-        $cIndex = 0;
+        $i       = 0;
 
         foreach ($this->columns as $column => $value) {
             $columns[] = $platform->quoteIdentifier($column);
-            $parameterName = 'column' . $cIndex++;
             if (is_scalar($value) && $parameterContainer) {
-                $values[] = $driver->formatParameterName($parameterName);
-                $parameterContainer->offsetSet($parameterName, $value);
+                // use incremental value instead of column name for PDO
+                // @see https://github.com/zendframework/zend-db/issues/35
+                if ($driver instanceof Pdo) {
+                    $column = 'c_' . $i++;
+                }
+                $values[] = $driver->formatParameterName($column);
+                $parameterContainer->offsetSet($column, $value);
             } else {
                 $values[] = $this->resolveColumnValue(
                     $value,
