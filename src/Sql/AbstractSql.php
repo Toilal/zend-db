@@ -428,9 +428,23 @@ abstract class AbstractSql implements SqlInterface
         if ($column === null) {
             return 'NULL';
         }
-        return $isIdentifier
-                ? $fromTable . $platform->quoteIdentifierInFragment($column)
-                : $platform->quoteValue($column);
+
+        if ($isIdentifier) {
+            $startsWithNumber = preg_match('/^[0-9]+/', $column);
+            $hasSpaceOrDash = preg_match('/^(.+)(\s|-)+(.+)$/i', $column);
+            $isUnicode = strlen($column) != mb_strlen($column);
+            if ($startsWithNumber || $hasSpaceOrDash || $isUnicode) {
+                $column = $platform->quoteIdentifier($column);
+            } else {
+                $column = $platform->quoteIdentifierInFragment($column);
+            }
+
+            $column = $fromTable . $column;
+        } else {
+            $column = $platform->quoteValue($column);
+        }
+
+        return $column;
     }
 
     /**
